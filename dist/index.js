@@ -49,7 +49,6 @@ function run() {
             const pullRequest = yield client.rest.pulls.get(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
             const actualLabels = pullRequest.data.labels.map(x => x.name);
             const isOk = config.anyOfLabels.some(label => actualLabels.includes(label));
-            yield client.rest.pulls.getReview();
             const review = yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: 'test', event: isOk ? 'APPROVE' : 'REQUEST_CHANGES' }));
             // await client.rest.pulls.submitReview({
             //   review_id: review.data.id,
