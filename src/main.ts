@@ -26,6 +26,7 @@ async function run(): Promise<void> {
     await client.rest.pulls.submitReview({
       review_id: review.data.id,
       pull_number: github.context.payload.pull_request.number,
+      body: 'test',
       ...github.context.repo,
       event: isOk ? 'APPROVE' : 'REQUEST_CHANGES'
     })
