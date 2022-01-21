@@ -55,8 +55,13 @@ function run() {
             const actualLabels = pullRequest.data.labels.map(x => x.name);
             const isOk = config.anyOfLabels.some(label => actualLabels.includes(label));
             const newStatus = isOk ? 'APPROVE' : 'REQUEST_CHANGES';
-            if (newStatus !== (lastReview === null || lastReview === void 0 ? void 0 : lastReview.state)) {
-                yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: `label-checker: ${newStatus}`, event: newStatus }));
+            if (!isOk) {
+                if (!lastReview) {
+                    yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: `label-checker: ${newStatus}`, event: newStatus }));
+                }
+            }
+            else if (lastReview && lastReview.state === 'REQUEST_CHANGES') {
+                yield client.rest.pulls.dismissReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { review_id: lastReview.id, message: 'labels now ok' }));
             }
         }
         catch (error) {

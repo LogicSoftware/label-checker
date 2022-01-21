@@ -29,12 +29,21 @@ async function run(): Promise<void> {
     const isOk = config.anyOfLabels.some(label => actualLabels.includes(label))
     const newStatus = isOk ? 'APPROVE' : 'REQUEST_CHANGES'
 
-    if (newStatus !== lastReview?.state) {
-      await client.rest.pulls.createReview({
+    if (!isOk) {
+      if (!lastReview) {
+        await client.rest.pulls.createReview({
+          pull_number: github.context.payload.pull_request.number,
+          ...github.context.repo,
+          body: `label-checker: ${newStatus}`,
+          event: newStatus
+        })
+      }
+    } else if (lastReview && lastReview.state === 'REQUEST_CHANGES') {
+      await client.rest.pulls.dismissReview({
         pull_number: github.context.payload.pull_request.number,
         ...github.context.repo,
-        body: `label-checker: ${newStatus}`,
-        event: newStatus
+        review_id: lastReview.id,
+        message: 'labels now ok'
       })
     }
   } catch (error) {
