@@ -1,11 +1,17 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Label checker'
+description: 'Checks that pull request has required combination of labels'
+author: 'Logic Software'
 inputs:
-  milliseconds: # change this
-    required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  github-token:
+    required: false
+    description: 'GitHub access token'
+    default: '${{ github.token }}'
+  any_of: # change this
+    required: false
+    description: >
+      Comma-separated list of labels.
+      Each pull request must be labeled with one or more of these labels.
+    default: ''
 runs:
   using: 'node12'
   main: 'dist/index.js'
