@@ -1,7 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 
-// test
 async function run(): Promise<void> {
   if (!github.context.payload.pull_request) {
     return
@@ -16,15 +15,28 @@ async function run(): Promise<void> {
       pull_number: github.context.payload.pull_request.number
     })
 
+    const reviews = await client.rest.pulls.listReviews({
+      ...github.context.repo,
+      pull_number: github.context.payload.pull_request.number
+    })
+
+    const currentUser = await client.rest.users.getAuthenticated()
+    const lastReview = (reviews.data ?? [])
+      .filter(x => x.user && x.user.id === currentUser.data.id)
+      .reverse()[0]
+
     const actualLabels = pullRequest.data.labels.map(x => x.name)
     const isOk = config.anyOfLabels.some(label => actualLabels.includes(label))
+    const newStatus = isOk ? 'APPROVE' : 'REQUEST_CHANGES';
 
-    const review = await client.rest.pulls.createReview({
-      pull_number: github.context.payload.pull_request.number,
-      ...github.context.repo,
-      body: 'test',
-      event: isOk ? 'APPROVE' : 'REQUEST_CHANGES'
-    })
+    if (newStatus !== lastReview?.state) {
+      await client.rest.pulls.createReview({
+        pull_number: github.context.payload.pull_request.number,
+        ...github.context.repo,
+        body: 'test',
+        event: isOk ? 'APPROVE' : 'REQUEST_CHANGES'
+      })
+    }
 
     // await client.rest.pulls.submitReview({
     //   review_id: review.data.id,
