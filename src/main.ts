@@ -18,6 +18,17 @@ async function run(): Promise<void> {
 
     const actualLabels = pullRequest.data.labels.map(x => x.name)
     const isOk = config.anyOfLabels.some(label => actualLabels.includes(label))
+    const review = await client.rest.pulls.createReview({
+      pull_number: github.context.payload.pull_request.number,
+      ...github.context.repo
+    })
+
+    await client.rest.pulls.submitReview({
+      review_id: review.data.id,
+      pull_number: github.context.payload.pull_request.number,
+      ...github.context.repo,
+      event: isOk ? 'APPROVE' : 'REQUEST_CHANGES'
+    })
     if (!isOk) {
       core.warning("didn't find label tested")
     }
