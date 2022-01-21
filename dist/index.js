@@ -37,6 +37,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+// test
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         if (!github.context.payload.pull_request) {
@@ -48,6 +49,9 @@ function run() {
             const pullRequest = yield client.rest.pulls.get(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
             const actualLabels = pullRequest.data.labels.map(x => x.name);
             const isOk = config.anyOfLabels.some(label => actualLabels.includes(label));
+            if (!isOk) {
+                core.warning("didn't find label tested");
+            }
             core.exportVariable('labels_check_passed', isOk);
         }
         catch (error) {

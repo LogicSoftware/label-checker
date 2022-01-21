@@ -18,6 +18,10 @@ async function run(): Promise<void> {
 
     const actualLabels = pullRequest.data.labels.map(x => x.name)
     const isOk = config.anyOfLabels.some(label => actualLabels.includes(label))
+    if (!isOk) {
+      core.warning("didn't find label tested")
+    }
+
     core.exportVariable('labels_check_passed', isOk)
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
