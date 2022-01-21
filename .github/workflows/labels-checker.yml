@@ -18,12 +18,8 @@ jobs:
         with:
           any_of: tested,partial
           github-token: ${{ secrets.GITHUB_TOKEN }}
-  submit_result:
-    name: Check labels
-    runs-on: ubuntu-latest
-    if: ${{ env.labels_check_passed }}
-    steps:
       - uses: actions/github-script@v3
+        if: ${{ env.labels_check_passed == 'true' }}
         with:
           script: |
             // do nothing
