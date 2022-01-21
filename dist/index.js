@@ -48,19 +48,16 @@ function run() {
             const client = github.getOctokit(config.githubToken);
             const pullRequest = yield client.rest.pulls.get(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
             const reviews = yield client.rest.pulls.listReviews(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
-            const lastReview = ((_a = reviews.data) !== null && _a !== void 0 ? _a : []).filter(x => x.body &&
-                x.body.startsWith('label-checker') &&
-                x.state === 'CHANGES_REQUESTED')[0];
+            const lastReview = ((_a = reviews.data) !== null && _a !== void 0 ? _a : []).filter(x => x.body && x.body.startsWith('label-checker') && x.state === 'APPROVED')[0];
             const actualLabels = pullRequest.data.labels.map(x => x.name);
             const isOk = config.anyOfLabels.some(label => actualLabels.includes(label));
-            const newStatus = isOk ? 'APPROVE' : 'REQUEST_CHANGES';
-            if (!isOk) {
+            if (isOk) {
                 if (!lastReview) {
-                    yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: `label-checker: ${newStatus}`, event: newStatus }));
+                    yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: `label-checker: LGTM :)`, event: 'APPROVE' }));
                 }
             }
             else if (lastReview) {
-                const result = yield client.rest.pulls.dismissReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { review_id: lastReview.id, message: 'labels now ok' }));
+                const result = yield client.rest.pulls.dismissReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { review_id: lastReview.id, message: `Can't find required label ${config.anyOfLabels.join(', ')}` }));
                 core.warning(`${result.status}: ${result.data}`);
             }
         }
