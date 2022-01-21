@@ -20,10 +20,12 @@ async function run(): Promise<void> {
       pull_number: github.context.payload.pull_request.number
     })
 
-    const lastReview = (reviews.data ?? [])
-      .filter(x => x.body && x.body.startsWith('label-checker'))
-      // todo: order
-      .reverse()[0]
+    const lastReview = (reviews.data ?? []).filter(
+      x =>
+        x.body &&
+        x.body.startsWith('label-checker') &&
+        x.state === 'CHANGES_REQUESTED'
+    )[0]
 
     const actualLabels = pullRequest.data.labels.map(x => x.name)
     const isOk = config.anyOfLabels.some(label => actualLabels.includes(label))
@@ -38,7 +40,7 @@ async function run(): Promise<void> {
           event: newStatus
         })
       }
-    } else if (lastReview && lastReview.state === 'CHANGES_REQUESTED') {
+    } else if (lastReview) {
       const result = await client.rest.pulls.dismissReview({
         pull_number: github.context.payload.pull_request.number,
         ...github.context.repo,
