@@ -38,6 +38,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 function run() {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         if (!github.context.payload.pull_request) {
             return;
@@ -46,9 +47,17 @@ function run() {
             const config = getConfig();
             const client = github.getOctokit(config.githubToken);
             const pullRequest = yield client.rest.pulls.get(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
+            const reviews = yield client.rest.pulls.listReviews(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
+            const currentUser = yield client.rest.users.getAuthenticated();
+            const lastReview = ((_a = reviews.data) !== null && _a !== void 0 ? _a : [])
+                .filter(x => x.user && x.user.id === currentUser.data.id)
+                .reverse()[0];
             const actualLabels = pullRequest.data.labels.map(x => x.name);
             const isOk = config.anyOfLabels.some(label => actualLabels.includes(label));
-            core.exportVariable('labels_check_passed', isOk);
+            const newStatus = isOk ? 'APPROVE' : 'REQUEST_CHANGES';
+            if (newStatus !== (lastReview === null || lastReview === void 0 ? void 0 : lastReview.state)) {
+                yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: 'test', event: newStatus }));
+            }
         }
         catch (error) {
             if (error instanceof Error)
