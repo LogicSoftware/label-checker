@@ -39,12 +39,14 @@ async function run(): Promise<void> {
         })
       }
     } else if (lastReview && lastReview.state === 'REQUEST_CHANGES') {
-      await client.rest.pulls.dismissReview({
+      const result = await client.rest.pulls.dismissReview({
         pull_number: github.context.payload.pull_request.number,
         ...github.context.repo,
         review_id: lastReview.id,
         message: 'labels now ok'
       })
+
+      core.warning(`${result.status}: ${result.data}`)
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
