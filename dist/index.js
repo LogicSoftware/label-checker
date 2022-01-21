@@ -60,7 +60,7 @@ function run() {
                     yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: `label-checker: ${newStatus}`, event: newStatus }));
                 }
             }
-            else if (lastReview && lastReview.state === 'REQUEST_CHANGES') {
+            else if (lastReview && lastReview.state === 'CHANGES_REQUESTED') {
                 const result = yield client.rest.pulls.dismissReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { review_id: lastReview.id, message: 'labels now ok' }));
                 core.warning(`${result.status}: ${result.data}`);
             }

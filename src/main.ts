@@ -38,7 +38,7 @@ async function run(): Promise<void> {
           event: newStatus
         })
       }
-    } else if (lastReview && lastReview.state === 'REQUEST_CHANGES') {
+    } else if (lastReview && lastReview.state === 'CHANGES_REQUESTED') {
       const result = await client.rest.pulls.dismissReview({
         pull_number: github.context.payload.pull_request.number,
         ...github.context.repo,
