@@ -20,9 +20,9 @@ async function run(): Promise<void> {
       pull_number: github.context.payload.pull_request.number
     })
 
-    const currentUser = await client.rest.users.getAuthenticated()
     const lastReview = (reviews.data ?? [])
-      .filter(x => x.user && x.user.id === currentUser.data.id)
+      .filter(x => x.body && x.body.startsWith('label-checker'))
+      // todo: order
       .reverse()[0]
 
     const actualLabels = pullRequest.data.labels.map(x => x.name)
@@ -33,7 +33,7 @@ async function run(): Promise<void> {
       await client.rest.pulls.createReview({
         pull_number: github.context.payload.pull_request.number,
         ...github.context.repo,
-        body: 'test',
+        body: `label-checker: ${newStatus}`,
         event: newStatus
       })
     }

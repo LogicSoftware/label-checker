@@ -48,15 +48,15 @@ function run() {
             const client = github.getOctokit(config.githubToken);
             const pullRequest = yield client.rest.pulls.get(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
             const reviews = yield client.rest.pulls.listReviews(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
-            const currentUser = yield client.rest.users.getAuthenticated();
             const lastReview = ((_a = reviews.data) !== null && _a !== void 0 ? _a : [])
-                .filter(x => x.user && x.user.id === currentUser.data.id)
+                .filter(x => x.body && x.body.startsWith('label-checker'))
+                // todo: order
                 .reverse()[0];
             const actualLabels = pullRequest.data.labels.map(x => x.name);
             const isOk = config.anyOfLabels.some(label => actualLabels.includes(label));
             const newStatus = isOk ? 'APPROVE' : 'REQUEST_CHANGES';
             if (newStatus !== (lastReview === null || lastReview === void 0 ? void 0 : lastReview.state)) {
-                yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: 'test', event: newStatus }));
+                yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: `label-checker: ${newStatus}`, event: newStatus }));
             }
         }
         catch (error) {
