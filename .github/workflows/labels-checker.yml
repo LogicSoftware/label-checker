@@ -9,8 +9,7 @@ on:
       - labeled
       - unlabeled
 
-permissions:
-  pull-requests: write
+permissions: write-all
 
 jobs:
   check_labels:
