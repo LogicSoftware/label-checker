@@ -22,19 +22,23 @@ async function run(): Promise<void> {
 
     const lastReview = (reviews.data ?? []).filter(
       x =>
-        x.body && x.body.startsWith('label-checker') && x.state === 'APPROVED'
+        x.body &&
+        x.body.startsWith('label-checker') &&
+        x.state === 'CHANGES_REQUESTED'
     )[0]
 
     const actualLabels = pullRequest.data.labels.map(x => x.name)
     const isOk = config.anyOfLabels.some(label => actualLabels.includes(label))
 
-    if (isOk) {
+    if (!isOk) {
       if (!lastReview) {
         await client.rest.pulls.createReview({
           pull_number: github.context.payload.pull_request.number,
           ...github.context.repo,
-          body: `label-checker: LGTM :)`,
-          event: 'APPROVE'
+          body: `label-checker: Can't find required label ${config.anyOfLabels.join(
+            ', '
+          )}`,
+          event: 'REQUEST_CHANGES'
         })
       }
     } else if (lastReview) {
@@ -42,7 +46,7 @@ async function run(): Promise<void> {
         pull_number: github.context.payload.pull_request.number,
         ...github.context.repo,
         review_id: lastReview.id,
-        message: `Can't find required label ${config.anyOfLabels.join(', ')}`
+        message: `labels now ok`
       })
 
       core.warning(`${result.status}: ${result.data}`)
