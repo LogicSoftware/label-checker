@@ -142,22 +142,26 @@ exports.checkLabels = exports.labelsCheckerName = void 0;
 exports.labelsCheckerName = "@label-checker";
 const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
     prLabels = prLabels.map(x => x.toLowerCase());
-    let errors = [];
-    if (anyOfLabels.length &&
-        !anyOfLabels.some(x => prLabels.includes(x.toLowerCase()))) {
-        const requiredLabels = anyOfLabels.join(", ");
-        errors.push(` - it's not labeled with one or more of these required labels: ${requiredLabels}.`);
-    }
     const deniedLabels = noneOfLabels.filter(x => prLabels.includes(x.toLowerCase()));
     if (deniedLabels.length) {
-        errors.push(` - it's labeled with label(s): ${deniedLabels.join(", ")}.`);
+        const labels = formatLabels(deniedLabels);
+        return {
+            success: false,
+            errorMsg: `${exports.labelsCheckerName}: Deny merge pr until it's labeled with label(s): ${labels}.`
+        };
     }
-    if (errors.length) {
-        errors = [`${exports.labelsCheckerName}: Deny merge pr until`, ...errors];
+    if (anyOfLabels.length &&
+        !anyOfLabels.some(x => prLabels.includes(x.toLowerCase()))) {
+        const labels = formatLabels(anyOfLabels);
+        return {
+            success: false,
+            errorMsg: `${exports.labelsCheckerName}: PR must be labeled with one or more of these required labels: ${labels}.`
+        };
     }
-    return { success: !errors.length, errorMsg: errors.join("\n") };
+    return { success: true, errorMsg: "" };
 };
 exports.checkLabels = checkLabels;
+const formatLabels = (labels) => labels.map(x => `**${x}**`).join(", ");
 
 
 /***/ }),
