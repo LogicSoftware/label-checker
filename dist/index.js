@@ -139,7 +139,7 @@ const parseLabels = (text) => text.split(",").map(l => l.trim());
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.checkLabels = exports.labelsCheckerName = void 0;
-exports.labelsCheckerName = "@labels-checker";
+exports.labelsCheckerName = "**@labels-checker**";
 const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
     prLabels = prLabels.map(x => x.toLowerCase());
     const deniedLabels = noneOfLabels.filter(x => prLabels.includes(x.toLowerCase()));
