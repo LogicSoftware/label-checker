@@ -1,6 +1,167 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 8947:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GithubApi = void 0;
+const github = __importStar(__nccwpck_require__(5438));
+const labels_checker_1 = __nccwpck_require__(5360);
+class GithubApi {
+    constructor(options) {
+        this._options = options;
+        this._client = github.getOctokit(options.githubToken);
+        const { repo, pull_number } = this._options;
+        this._basePayload = Object.assign(Object.assign({}, repo), { pull_number });
+    }
+    getPullRequestLabels() {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const pullRequest = yield this._client.rest.pulls.get(this._basePayload);
+            return (((_a = pullRequest.data.labels) !== null && _a !== void 0 ? _a : [])
+                .filter(x => x.name != null)
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                .map(x => x.name));
+        });
+    }
+    getLastChangesRequestedReview() {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const reviews = yield this._client.rest.pulls.listReviews(this._basePayload);
+            return ((_a = reviews.data) !== null && _a !== void 0 ? _a : []).filter(x => {
+                var _a;
+                return x.body &&
+                    x.body.startsWith(labels_checker_1.labelsCheckerName) &&
+                    x.state === "CHANGES_REQUESTED" &&
+                    ((_a = x.user) === null || _a === void 0 ? void 0 : _a.type) === "Bot";
+            })[0];
+        });
+    }
+    requestChanges(message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._client.rest.pulls.createReview(Object.assign(Object.assign({}, this._basePayload), { body: message, event: "REQUEST_CHANGES" }));
+        });
+    }
+    updateReviewMessage(review, message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._client.rest.pulls.updateReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, body: message }));
+        });
+    }
+    dismissReview(review) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._client.rest.pulls.dismissReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, message: "LGTM" }));
+        });
+    }
+}
+exports.GithubApi = GithubApi;
+
+
+/***/ }),
+
+/***/ 88:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getConfig = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const getConfig = () => {
+    const githubToken = core.getInput("github-token");
+    const anyOfLabels = parseLabels(core.getInput("any_of"));
+    const noneOfLabels = parseLabels(core.getInput("none_of"));
+    return {
+        githubToken,
+        anyOfLabels,
+        noneOfLabels
+    };
+};
+exports.getConfig = getConfig;
+const parseLabels = (text) => text.split(",").map(l => l.trim());
+
+
+/***/ }),
+
+/***/ 5360:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.checkLabels = exports.labelsCheckerName = void 0;
+exports.labelsCheckerName = "@label-checker";
+const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
+    prLabels = prLabels.map(x => x.toLowerCase());
+    let errors = [];
+    if (anyOfLabels.length &&
+        !anyOfLabels.some(x => prLabels.includes(x.toLowerCase()))) {
+        const requiredLabels = anyOfLabels.join(", ");
+        errors.push(` - it's not labeled with one or more of these required labels: ${requiredLabels}.`);
+    }
+    const deniedLabels = noneOfLabels.filter(x => prLabels.includes(x.toLowerCase()));
+    if (deniedLabels.length) {
+        errors.push(` - it's labeled with label(s): ${deniedLabels.join(", ")}.`);
+    }
+    if (errors.length) {
+        errors = [`${exports.labelsCheckerName}: Deny merge pr until`, ...errors];
+    }
+    return { success: !errors.length, errorMsg: errors.join("\n") };
+};
+exports.checkLabels = checkLabels;
+
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -37,28 +198,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const api_1 = __nccwpck_require__(8947);
+const labels_checker_1 = __nccwpck_require__(5360);
+const config_1 = __nccwpck_require__(88);
 function run() {
-    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         if (!github.context.payload.pull_request) {
             return;
         }
         try {
-            const config = getConfig();
-            const client = github.getOctokit(config.githubToken);
-            const pullRequest = yield client.rest.pulls.get(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
-            const reviews = yield client.rest.pulls.listReviews(Object.assign(Object.assign({}, github.context.repo), { pull_number: github.context.payload.pull_request.number }));
-            const lastReview = ((_a = reviews.data) !== null && _a !== void 0 ? _a : []).filter(x => x.body && x.body.startsWith('label-checker') && x.state === 'APPROVED')[0];
-            const actualLabels = pullRequest.data.labels.map(x => x.name);
-            const isOk = config.anyOfLabels.some(label => actualLabels.includes(label));
-            if (isOk) {
-                if (!lastReview) {
-                    yield client.rest.pulls.createReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { body: `label-checker: LGTM :)`, event: 'APPROVE' }));
+            const config = (0, config_1.getConfig)();
+            const client = new api_1.GithubApi({
+                githubToken: config.githubToken,
+                pull_number: github.context.payload.pull_request.number,
+                repo: github.context.repo
+            });
+            const actualLabels = yield client.getPullRequestLabels();
+            const { success, errorMsg } = (0, labels_checker_1.checkLabels)(actualLabels, config);
+            const lastReview = yield client.getLastChangesRequestedReview();
+            if (success) {
+                // remove "changes requested" if labels are ok now.
+                if (lastReview) {
+                    yield client.dismissReview(lastReview);
                 }
+                return;
             }
-            else if (lastReview) {
-                const result = yield client.rest.pulls.dismissReview(Object.assign(Object.assign({ pull_number: github.context.payload.pull_request.number }, github.context.repo), { review_id: lastReview.id, message: `Can't find required label ${config.anyOfLabels.join(', ')}` }));
-                core.warning(`${result.status}: ${result.data}`);
+            if (!lastReview) {
+                yield client.requestChanges(errorMsg);
+                return;
+            }
+            if (lastReview.body_text !== errorMsg) {
+                yield client.updateReviewMessage(lastReview, errorMsg);
             }
         }
         catch (error) {
@@ -67,15 +237,6 @@ function run() {
         }
     });
 }
-const getConfig = () => {
-    const githubToken = core.getInput('github-token');
-    const anyOfLabelsText = core.getInput('any_of');
-    const anyOfLabels = anyOfLabelsText.split(',').map(l => l.trim());
-    return {
-        githubToken,
-        anyOfLabels
-    };
-};
 run();
 
 
