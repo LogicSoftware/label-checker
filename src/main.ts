@@ -1,71 +1,46 @@
-import * as core from '@actions/core'
-import * as github from '@actions/github'
+import * as core from "@actions/core";
+import * as github from "@actions/github";
+import { GithubApi } from "./api";
+import { checkLabels } from "./labels-checker";
+import { getConfig } from "./config";
 
 async function run(): Promise<void> {
   if (!github.context.payload.pull_request) {
-    return
+    return;
   }
 
   try {
-    const config = getConfig()
-    const client = github.getOctokit(config.githubToken)
+    const config = getConfig();
+    const client = new GithubApi({
+      githubToken: config.githubToken,
+      pull_number: github.context.payload.pull_request.number,
+      repo: github.context.repo
+    });
 
-    const pullRequest = await client.rest.pulls.get({
-      ...github.context.repo,
-      pull_number: github.context.payload.pull_request.number
-    })
+    const actualLabels = await client.getPullRequestLabels();
+    const { success, errorMsg } = checkLabels(actualLabels, config);
 
-    const reviews = await client.rest.pulls.listReviews({
-      ...github.context.repo,
-      pull_number: github.context.payload.pull_request.number
-    })
+    const lastReview = await client.getLastChangesRequestedReview();
 
-    const lastReview = (reviews.data ?? []).filter(
-      x =>
-        x.body && x.body.startsWith('label-checker') && x.state === 'APPROVED'
-    )[0]
-
-    const actualLabels = pullRequest.data.labels.map(x => x.name)
-    const isOk = config.anyOfLabels.some(label => actualLabels.includes(label))
-
-    if (isOk) {
-      if (!lastReview) {
-        await client.rest.pulls.createReview({
-          pull_number: github.context.payload.pull_request.number,
-          ...github.context.repo,
-          body: `label-checker: LGTM :)`,
-          event: 'APPROVE'
-        })
+    if (success) {
+      // remove "changes requested" if labels are ok now.
+      if (lastReview) {
+        await client.dismissReview(lastReview);
       }
-    } else if (lastReview) {
-      const result = await client.rest.pulls.dismissReview({
-        pull_number: github.context.payload.pull_request.number,
-        ...github.context.repo,
-        review_id: lastReview.id,
-        message: `Can't find required label ${config.anyOfLabels.join(', ')}`
-      })
+      return;
+    }
 
-      core.warning(`${result.status}: ${result.data}`)
+    if (!lastReview) {
+      await client.requestChanges(errorMsg);
+      return;
+    }
+
+    if (lastReview.body_text !== errorMsg) {
+      await client.updateReviewMessage(lastReview, errorMsg);
     }
   } catch (error) {
-    if (error instanceof Error) core.setFailed(error.message)
+    if (error instanceof Error) core.setFailed(error.message);
   }
 }
 
-interface Config {
-  githubToken: string
-  anyOfLabels: string[]
-}
-
-const getConfig = (): Config => {
-  const githubToken = core.getInput('github-token')
-  const anyOfLabelsText = core.getInput('any_of')
-  const anyOfLabels = anyOfLabelsText.split(',').map(l => l.trim())
-
-  return {
-    githubToken,
-    anyOfLabels
-  } as const
-}
-
-run()
+run();

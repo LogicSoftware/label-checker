@@ -6,12 +6,18 @@ inputs:
     required: false
     description: 'GitHub access token'
     default: '${{ github.token }}'
-  any_of: # change this
+  any_of:
     required: false
     description: >
       Comma-separated list of labels.
       Each pull request must be labeled with one or more of these labels.
-    default: ''
+    default: "Tested,Partial"
+  none_of:
+    required: false
+    description: >
+      Comma-separated list of labels.
+      Each pull request must not be labeled with any of these labels.
+    default: "Untested,DON'T MERGE,Dependent,Need Upgrade Script,Waiting for back end"
 runs:
   using: 'node12'
   main: 'dist/index.js'
