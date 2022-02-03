@@ -65,7 +65,7 @@ export class GithubApi {
     await this._client.rest.pulls.dismissReview({
       ...this._basePayload,
       review_id: review.id,
-      message: "LGTM"
+      message: `${labelsCheckerName}: LGTM`
     });
   }
 }

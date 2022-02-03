@@ -80,7 +80,7 @@ class GithubApi {
     }
     dismissReview(review) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this._client.rest.pulls.dismissReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, message: "LGTM" }));
+            yield this._client.rest.pulls.dismissReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, message: `${labels_checker_1.labelsCheckerName}: LGTM` }));
         });
     }
 }
@@ -139,7 +139,7 @@ const parseLabels = (text) => text.split(",").map(l => l.trim());
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.checkLabels = exports.labelsCheckerName = void 0;
-exports.labelsCheckerName = "@label-checker";
+exports.labelsCheckerName = "@labels-checker";
 const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
     prLabels = prLabels.map(x => x.toLowerCase());
     const deniedLabels = noneOfLabels.filter(x => prLabels.includes(x.toLowerCase()));

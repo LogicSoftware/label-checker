@@ -2,7 +2,7 @@ import { Config } from "./config";
 
 type LabelsConfig = Pick<Config, "anyOfLabels" | "noneOfLabels">;
 
-export const labelsCheckerName = "@label-checker";
+export const labelsCheckerName = "@labels-checker";
 
 type Result = { success: boolean; errorMsg: string };
 
