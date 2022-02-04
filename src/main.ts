@@ -29,11 +29,13 @@ async function runLabelsCheck(client: GithubApi, config: Config) {
   const actualLabels = await client.getPullRequestLabels();
   const { success, errorMsg } = checkLabels(actualLabels, config);
 
-  await client.setPrStatus(
+  const result = await client.setPrStatus(
     success ? "success" : "pending",
     "labels-checker",
     errorMsg
   );
+
+  core.warning(JSON.stringify(result));
 }
 
 async function runTasksListCheck(client: GithubApi, prBody: string) {

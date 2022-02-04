@@ -35,7 +35,7 @@ export class GithubApi {
 
   async setPrStatus(state: StatusState, context: string, description?: string) {
     description = description ?? "Ok";
-    await this._client.rest.repos.createCommitStatus({
+    return await this._client.rest.repos.createCommitStatus({
       ...this._options.repo,
       sha: this._options.sha,
       state,
