@@ -170,7 +170,7 @@ const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
     return { success: true, errorMsg: "" };
 };
 exports.checkLabels = checkLabels;
-const formatLabels = (labels) => labels.map(x => `${x}`).join(", ");
+const formatLabels = (labels) => labels.map(x => `**${x}**`).join(", ");
 
 
 /***/ }),

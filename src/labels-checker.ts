@@ -35,4 +35,5 @@ export const checkLabels = (
   return { success: true, errorMsg: "" };
 };
 
-const formatLabels = (labels: string[]) => labels.map(x => `${x}`).join(", ");
+const formatLabels = (labels: string[]) =>
+  labels.map(x => `**${x}**`).join(", ");
