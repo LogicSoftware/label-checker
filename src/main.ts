@@ -15,7 +15,7 @@ async function run(): Promise<void> {
       githubToken: config.githubToken,
       pull_number: github.context.payload.pull_request.number,
       repo: github.context.repo,
-      sha: github.context.sha
+      sha: github.context.payload.pull_request.head.sha
     });
 
     await runLabelsCheck(client, config);
