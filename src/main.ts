@@ -15,7 +15,7 @@ async function run(): Promise<void> {
       githubToken: config.githubToken,
       pull_number: github.context.payload.pull_request.number,
       repo: github.context.repo,
-      sha: github.context.sha
+      sha: github.context.payload.pull_request.head.sha
     });
 
     await runLabelsCheck(client, config);
@@ -29,11 +29,13 @@ async function runLabelsCheck(client: GithubApi, config: Config) {
   const actualLabels = await client.getPullRequestLabels();
   const { success, errorMsg } = checkLabels(actualLabels, config);
 
-  await client.setPrStatus(
+  const result = await client.setPrStatus(
     success ? "success" : "pending",
     "labels-checker",
     errorMsg
   );
+
+  core.warning(JSON.stringify(result));
 }
 
 async function runTasksListCheck(client: GithubApi, prBody: string) {

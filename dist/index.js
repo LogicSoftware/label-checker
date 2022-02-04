@@ -57,7 +57,7 @@ class GithubApi {
     setPrStatus(state, context, description) {
         return __awaiter(this, void 0, void 0, function* () {
             description = description !== null && description !== void 0 ? description : "Ok";
-            yield this._client.rest.repos.createCommitStatus(Object.assign(Object.assign({}, this._options.repo), { sha: this._options.sha, state,
+            return yield this._client.rest.repos.createCommitStatus(Object.assign(Object.assign({}, this._options.repo), { sha: this._options.sha, state,
                 context, target_url: "https://github.com/LogicSoftware/label-checker", description }));
         });
     }
@@ -194,7 +194,7 @@ function run() {
                 githubToken: config.githubToken,
                 pull_number: github.context.payload.pull_request.number,
                 repo: github.context.repo,
-                sha: github.context.sha
+                sha: github.context.payload.pull_request.head.sha
             });
             yield runLabelsCheck(client, config);
             yield runTasksListCheck(client, github.context.payload.pull_request.body);
@@ -209,7 +209,8 @@ function runLabelsCheck(client, config) {
     return __awaiter(this, void 0, void 0, function* () {
         const actualLabels = yield client.getPullRequestLabels();
         const { success, errorMsg } = (0, labels_checker_1.checkLabels)(actualLabels, config);
-        yield client.setPrStatus(success ? "success" : "pending", "labels-checker", errorMsg);
+        const result = yield client.setPrStatus(success ? "success" : "pending", "labels-checker", errorMsg);
+        core.warning(JSON.stringify(result));
     });
 }
 function runTasksListCheck(client, prBody) {
