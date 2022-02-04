@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { Config, getConfig } from "./config";
-import { GithubApi } from "./api";
+import { botName, GithubApi } from "./api";
 import { checkLabels } from "./labels-checker";
 
 async function run(): Promise<void> {
@@ -23,7 +23,7 @@ async function run(): Promise<void> {
       getTasksListError(github.context.payload.pull_request.body!)
     ].filter(x => !!x);
 
-    const errorMsg = errors.join("\n");
+    const errorMsg = errors.length ? `${botName}:\n${errors.join("\n")}` : null;
     const isSuccessful = !errorMsg;
 
     const lastReview = await client.getLastChangesRequestedReview();

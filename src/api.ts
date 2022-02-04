@@ -51,7 +51,7 @@ export class GithubApi {
   async requestChanges(message: string) {
     await this._client.rest.pulls.createReview({
       ...this._basePayload,
-      body: `${botName}:\n${message}`,
+      body: message,
       event: "REQUEST_CHANGES"
     });
   }
@@ -60,7 +60,7 @@ export class GithubApi {
     await this._client.rest.pulls.updateReview({
       ...this._basePayload,
       review_id: review.id,
-      body: `${botName}:\n${message}`
+      body: message
     });
   }
 

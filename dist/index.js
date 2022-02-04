@@ -70,12 +70,12 @@ class GithubApi {
     }
     requestChanges(message) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this._client.rest.pulls.createReview(Object.assign(Object.assign({}, this._basePayload), { body: `${exports.botName}:\n${message}`, event: "REQUEST_CHANGES" }));
+            yield this._client.rest.pulls.createReview(Object.assign(Object.assign({}, this._basePayload), { body: message, event: "REQUEST_CHANGES" }));
         });
     }
     updateReviewMessage(review, message) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this._client.rest.pulls.updateReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, body: `${exports.botName}:\n${message}` }));
+            yield this._client.rest.pulls.updateReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, body: message }));
         });
     }
     dismissReview(review) {
@@ -154,20 +154,14 @@ const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
     const deniedLabels = noneOfLabels.filter(x => prLabels.includes(x.toLowerCase()));
     if (deniedLabels.length) {
         const labels = formatLabels(deniedLabels);
-        return {
-            success: false,
-            errorMsg: `Deny merge pr until it's labeled with label(s): ${labels}.`
-        };
+        return `Deny merge pr until it's labeled with label(s): ${labels}.`;
     }
     if (anyOfLabels.length &&
         !anyOfLabels.some(x => prLabels.includes(x.toLowerCase()))) {
         const labels = formatLabels(anyOfLabels);
-        return {
-            success: false,
-            errorMsg: `PR must be labeled with one or more of these required labels: ${labels}.`
-        };
+        return `PR must be labeled with one or more of these required labels: ${labels}.`;
     }
-    return { success: true, errorMsg: "" };
+    return null;
 };
 exports.checkLabels = checkLabels;
 const formatLabels = (labels) => labels.map(x => `**${x}**`).join(", ");
@@ -227,15 +221,14 @@ function run() {
                 repo: github.context.repo,
                 sha: github.context.payload.pull_request.head.sha
             });
-            const { success, errorMsg } = [
-                yield runLabelsCheck(client, config),
-                runTasksListCheck(github.context.payload.pull_request.body)
-            ].reduce((acc, res) => ({
-                success: acc.success && res.success,
-                errorMsg: [acc.errorMsg, res.errorMsg].filter(x => x).join("\n")
-            }));
+            const errors = [
+                yield getLabelsError(client, config),
+                getTasksListError(github.context.payload.pull_request.body)
+            ].filter(x => !!x);
+            const errorMsg = errors.length ? `${api_1.botName}:\n${errors.join("\n")}` : null;
+            const isSuccessful = !errorMsg;
             const lastReview = yield client.getLastChangesRequestedReview();
-            if (success) {
+            if (isSuccessful) {
                 // remove "changes requested" if labels are ok now.
                 if (lastReview) {
                     yield client.dismissReview(lastReview);
@@ -256,18 +249,15 @@ function run() {
         }
     });
 }
-function runLabelsCheck(client, config) {
+function getLabelsError(client, config) {
     return __awaiter(this, void 0, void 0, function* () {
         const actualLabels = yield client.getPullRequestLabels();
         return (0, labels_checker_1.checkLabels)(actualLabels, config);
     });
 }
-function runTasksListCheck(prBody) {
+function getTasksListError(prBody) {
     const hasUncheckedTask = /-\s*\[\s\]/g.test(prBody);
-    return {
-        success: !hasUncheckedTask,
-        errorMsg: hasUncheckedTask ? "Task list not completed yet" : ""
-    };
+    return hasUncheckedTask ? "Tasks list is not completed yet" : null;
 }
 run();
 
