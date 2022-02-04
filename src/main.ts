@@ -18,17 +18,17 @@ async function run(): Promise<void> {
       sha: github.context.payload.pull_request.head.sha
     });
 
-    const { success, errorMsg } = [
-      await runLabelsCheck(client, config),
-      runTasksListCheck(github.context.payload.pull_request.body!)
-    ].reduce((acc, res) => ({
-      success: acc.success && res.success,
-      errorMsg: [acc.errorMsg, res.errorMsg].filter(x => x).join("\n")
-    }));
+    const errors = [
+      await getLabelsError(client, config),
+      getTasksListError(github.context.payload.pull_request.body!)
+    ].filter(x => !!x);
+
+    const errorMsg = errors.join("\n");
+    const isSuccessful = !errorMsg;
 
     const lastReview = await client.getLastChangesRequestedReview();
 
-    if (success) {
+    if (isSuccessful) {
       // remove "changes requested" if labels are ok now.
       if (lastReview) {
         await client.dismissReview(lastReview);
@@ -49,17 +49,14 @@ async function run(): Promise<void> {
   }
 }
 
-async function runLabelsCheck(client: GithubApi, config: Config) {
+async function getLabelsError(client: GithubApi, config: Config) {
   const actualLabels = await client.getPullRequestLabels();
   return checkLabels(actualLabels, config);
 }
 
-function runTasksListCheck(prBody: string) {
+function getTasksListError(prBody: string): string | null {
   const hasUncheckedTask = /-\s*\[\s\]/g.test(prBody);
-  return {
-    success: !hasUncheckedTask,
-    errorMsg: hasUncheckedTask ? "Task list not completed yet" : ""
-  };
+  return hasUncheckedTask ? "Tasks list is not completed yet" : null;
 }
 
 run();
