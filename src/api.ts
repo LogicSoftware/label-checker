@@ -35,7 +35,7 @@ export class GithubApi {
 
   async setPrStatus(state: StatusState, context: string, description?: string) {
     description = description ?? "Ok";
-    return await this._client.rest.repos.createCommitStatus({
+    const result = await this._client.rest.repos.createCommitStatus({
       ...this._options.repo,
       sha: this._options.sha,
       state,
@@ -43,5 +43,9 @@ export class GithubApi {
       target_url: "https://github.com/LogicSoftware/label-checker",
       description
     });
+
+    if (result.status !== 201) {
+      throw new Error(`Can't create commit status: ${JSON.stringify(result)}`);
+    }
   }
 }

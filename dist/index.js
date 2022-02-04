@@ -57,8 +57,11 @@ class GithubApi {
     setPrStatus(state, context, description) {
         return __awaiter(this, void 0, void 0, function* () {
             description = description !== null && description !== void 0 ? description : "Ok";
-            return yield this._client.rest.repos.createCommitStatus(Object.assign(Object.assign({}, this._options.repo), { sha: this._options.sha, state,
+            const result = yield this._client.rest.repos.createCommitStatus(Object.assign(Object.assign({}, this._options.repo), { sha: this._options.sha, state,
                 context, target_url: "https://github.com/LogicSoftware/label-checker", description }));
+            if (result.status !== 201) {
+                throw new Error(`Can't create commit status: ${JSON.stringify(result)}`);
+            }
         });
     }
 }
@@ -116,8 +119,7 @@ const parseLabels = (text) => text.split(",").map(l => l.trim());
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.checkLabels = exports.labelsCheckerName = void 0;
-exports.labelsCheckerName = "**@labels-checker**";
+exports.checkLabels = void 0;
 const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
     prLabels = prLabels.map(x => x.toLowerCase());
     const deniedLabels = noneOfLabels.filter(x => prLabels.includes(x.toLowerCase()));
@@ -125,7 +127,7 @@ const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
         const labels = formatLabels(deniedLabels);
         return {
             success: false,
-            errorMsg: `${exports.labelsCheckerName}: Deny merge pr until it's labeled with label(s): ${labels}.`
+            errorMsg: `Deny merge pr until it's labeled with label(s): ${labels}.`
         };
     }
     if (anyOfLabels.length &&
@@ -133,13 +135,13 @@ const checkLabels = (prLabels, { anyOfLabels = [], noneOfLabels = [] }) => {
         const labels = formatLabels(anyOfLabels);
         return {
             success: false,
-            errorMsg: `${exports.labelsCheckerName}: PR must be labeled with one or more of these required labels: ${labels}.`
+            errorMsg: `PR must be labeled with one or more of these required labels: ${labels}.`
         };
     }
     return { success: true, errorMsg: "" };
 };
 exports.checkLabels = checkLabels;
-const formatLabels = (labels) => labels.map(x => `**${x}**`).join(", ");
+const formatLabels = (labels) => labels.map(x => `${x}`).join(", ");
 
 
 /***/ }),
@@ -209,8 +211,7 @@ function runLabelsCheck(client, config) {
     return __awaiter(this, void 0, void 0, function* () {
         const actualLabels = yield client.getPullRequestLabels();
         const { success, errorMsg } = (0, labels_checker_1.checkLabels)(actualLabels, config);
-        const result = yield client.setPrStatus(success ? "success" : "pending", "labels-checker", errorMsg);
-        core.warning(JSON.stringify(result));
+        yield client.setPrStatus(success ? "success" : "pending", "Labels Checker", errorMsg);
     });
 }
 function runTasksListCheck(client, prBody) {

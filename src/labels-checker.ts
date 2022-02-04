@@ -2,8 +2,6 @@ import { Config } from "./config";
 
 type LabelsConfig = Pick<Config, "anyOfLabels" | "noneOfLabels">;
 
-export const labelsCheckerName = "**@labels-checker**";
-
 type Result = { success: boolean; errorMsg: string };
 
 export const checkLabels = (
@@ -19,7 +17,7 @@ export const checkLabels = (
     const labels = formatLabels(deniedLabels);
     return {
       success: false,
-      errorMsg: `${labelsCheckerName}: Deny merge pr until it's labeled with label(s): ${labels}.`
+      errorMsg: `Deny merge pr until it's labeled with label(s): ${labels}.`
     };
   }
 
@@ -30,12 +28,11 @@ export const checkLabels = (
     const labels = formatLabels(anyOfLabels);
     return {
       success: false,
-      errorMsg: `${labelsCheckerName}: PR must be labeled with one or more of these required labels: ${labels}.`
+      errorMsg: `PR must be labeled with one or more of these required labels: ${labels}.`
     };
   }
 
   return { success: true, errorMsg: "" };
 };
 
-const formatLabels = (labels: string[]) =>
-  labels.map(x => `**${x}**`).join(", ");
+const formatLabels = (labels: string[]) => labels.map(x => `${x}`).join(", ");

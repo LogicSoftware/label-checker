@@ -23,7 +23,7 @@ describe("checkLabels", () => {
     expect(result).toEqual({
       success: false,
       errorMsg:
-        "@label-checker: PR must be labeled with one or more of these required labels: **tested**, **partial**."
+        "PR must be labeled with one or more of these required labels: tested, partial."
     });
   });
 
@@ -40,8 +40,7 @@ describe("checkLabels", () => {
 
     expect(result).toEqual({
       success: false,
-      errorMsg:
-        "@label-checker: Deny merge pr until it's labeled with label(s): **untested**."
+      errorMsg: "Deny merge pr until it's labeled with label(s): untested."
     });
   });
 
@@ -51,8 +50,7 @@ describe("checkLabels", () => {
 
     expect(result).toEqual({
       success: false,
-      errorMsg:
-        "@label-checker: Deny merge pr until it's labeled with label(s): **Untested**."
+      errorMsg: "Deny merge pr until it's labeled with label(s): Untested."
     });
   });
 });
