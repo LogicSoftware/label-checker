@@ -1,12 +1,14 @@
 import * as github from "@actions/github";
 import { GitHub } from "@actions/github/lib/utils";
-import { labelsCheckerName } from "./labels-checker";
 
 type Options = {
   githubToken: string;
   repo: typeof github.context.repo;
   pull_number: number;
+  sha: string;
 };
+
+type StatusState = "error" | "failure" | "pending" | "success";
 
 export class GithubApi {
   private _options: Options;
@@ -31,41 +33,15 @@ export class GithubApi {
     );
   }
 
-  async getLastChangesRequestedReview() {
-    const reviews = await this._client.rest.pulls.listReviews(
-      this._basePayload
-    );
-
-    return (reviews.data ?? []).filter(
-      x =>
-        x.body &&
-        x.body.startsWith(labelsCheckerName) &&
-        x.state === "CHANGES_REQUESTED" &&
-        x.user?.type === "Bot"
-    )[0];
-  }
-
-  async requestChanges(message: string) {
-    await this._client.rest.pulls.createReview({
-      ...this._basePayload,
-      body: message,
-      event: "REQUEST_CHANGES"
-    });
-  }
-
-  async updateReviewMessage(review: { id: number }, message: string) {
-    await this._client.rest.pulls.updateReview({
-      ...this._basePayload,
-      review_id: review.id,
-      body: message
-    });
-  }
-
-  async dismissReview(review: { id: number }) {
-    await this._client.rest.pulls.dismissReview({
-      ...this._basePayload,
-      review_id: review.id,
-      message: `${labelsCheckerName}: LGTM`
+  async setPrStatus(state: StatusState, context: string, description?: string) {
+    description = description ?? "Ok";
+    await this._client.rest.repos.createCommitStatus({
+      ...this._options.repo,
+      sha: this._options.sha,
+      state,
+      context,
+      target_url: "https://github.com/LogicSoftware/label-checker",
+      description
     });
   }
 }

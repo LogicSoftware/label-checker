@@ -37,7 +37,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.GithubApi = void 0;
 const github = __importStar(__nccwpck_require__(5438));
-const labels_checker_1 = __nccwpck_require__(5360);
 class GithubApi {
     constructor(options) {
         this._options = options;
@@ -55,32 +54,11 @@ class GithubApi {
                 .map(x => x.name));
         });
     }
-    getLastChangesRequestedReview() {
-        var _a;
+    setPrStatus(state, context, description) {
         return __awaiter(this, void 0, void 0, function* () {
-            const reviews = yield this._client.rest.pulls.listReviews(this._basePayload);
-            return ((_a = reviews.data) !== null && _a !== void 0 ? _a : []).filter(x => {
-                var _a;
-                return x.body &&
-                    x.body.startsWith(labels_checker_1.labelsCheckerName) &&
-                    x.state === "CHANGES_REQUESTED" &&
-                    ((_a = x.user) === null || _a === void 0 ? void 0 : _a.type) === "Bot";
-            })[0];
-        });
-    }
-    requestChanges(message) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this._client.rest.pulls.createReview(Object.assign(Object.assign({}, this._basePayload), { body: message, event: "REQUEST_CHANGES" }));
-        });
-    }
-    updateReviewMessage(review, message) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this._client.rest.pulls.updateReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, body: message }));
-        });
-    }
-    dismissReview(review) {
-        return __awaiter(this, void 0, void 0, function* () {
-            yield this._client.rest.pulls.dismissReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, message: `${labels_checker_1.labelsCheckerName}: LGTM` }));
+            description = description !== null && description !== void 0 ? description : "Ok";
+            yield this._client.rest.repos.createCommitStatus(Object.assign(Object.assign({}, this._options.repo), { sha: this._options.sha, state,
+                context, target_url: "https://github.com/LogicSoftware/label-checker", description }));
         });
     }
 }
@@ -202,9 +180,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
+const config_1 = __nccwpck_require__(88);
 const api_1 = __nccwpck_require__(8947);
 const labels_checker_1 = __nccwpck_require__(5360);
-const config_1 = __nccwpck_require__(88);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         if (!github.context.payload.pull_request) {
@@ -215,30 +193,29 @@ function run() {
             const client = new api_1.GithubApi({
                 githubToken: config.githubToken,
                 pull_number: github.context.payload.pull_request.number,
-                repo: github.context.repo
+                repo: github.context.repo,
+                sha: github.context.sha
             });
-            const actualLabels = yield client.getPullRequestLabels();
-            const { success, errorMsg } = (0, labels_checker_1.checkLabels)(actualLabels, config);
-            const lastReview = yield client.getLastChangesRequestedReview();
-            if (success) {
-                // remove "changes requested" if labels are ok now.
-                if (lastReview) {
-                    yield client.dismissReview(lastReview);
-                }
-                return;
-            }
-            if (!lastReview) {
-                yield client.requestChanges(errorMsg);
-                return;
-            }
-            if (lastReview.body_text !== errorMsg) {
-                yield client.updateReviewMessage(lastReview, errorMsg);
-            }
+            yield runLabelsCheck(client, config);
+            yield runTasksListCheck(client, github.context.payload.pull_request.body);
         }
         catch (error) {
             if (error instanceof Error)
                 core.setFailed(error.message);
         }
+    });
+}
+function runLabelsCheck(client, config) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const actualLabels = yield client.getPullRequestLabels();
+        const { success, errorMsg } = (0, labels_checker_1.checkLabels)(actualLabels, config);
+        yield client.setPrStatus(success ? "success" : "pending", "labels-checker", errorMsg);
+    });
+}
+function runTasksListCheck(client, prBody) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const hasUncheckedTask = /-\s*\[\s\]/g.test(prBody);
+        yield client.setPrStatus(hasUncheckedTask ? "pending" : "success", "Tasks List Checker", hasUncheckedTask ? "task list not completed yet" : "");
     });
 }
 run();

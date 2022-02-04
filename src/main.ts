@@ -1,8 +1,8 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
+import { Config, getConfig } from "./config";
 import { GithubApi } from "./api";
 import { checkLabels } from "./labels-checker";
-import { getConfig } from "./config";
 
 async function run(): Promise<void> {
   if (!github.context.payload.pull_request) {
@@ -14,33 +14,35 @@ async function run(): Promise<void> {
     const client = new GithubApi({
       githubToken: config.githubToken,
       pull_number: github.context.payload.pull_request.number,
-      repo: github.context.repo
+      repo: github.context.repo,
+      sha: github.context.sha
     });
 
-    const actualLabels = await client.getPullRequestLabels();
-    const { success, errorMsg } = checkLabels(actualLabels, config);
-
-    const lastReview = await client.getLastChangesRequestedReview();
-
-    if (success) {
-      // remove "changes requested" if labels are ok now.
-      if (lastReview) {
-        await client.dismissReview(lastReview);
-      }
-      return;
-    }
-
-    if (!lastReview) {
-      await client.requestChanges(errorMsg);
-      return;
-    }
-
-    if (lastReview.body_text !== errorMsg) {
-      await client.updateReviewMessage(lastReview, errorMsg);
-    }
+    await runLabelsCheck(client, config);
+    await runTasksListCheck(client, github.context.payload.pull_request.body!);
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
   }
+}
+
+async function runLabelsCheck(client: GithubApi, config: Config) {
+  const actualLabels = await client.getPullRequestLabels();
+  const { success, errorMsg } = checkLabels(actualLabels, config);
+
+  await client.setPrStatus(
+    success ? "success" : "pending",
+    "labels-checker",
+    errorMsg
+  );
+}
+
+async function runTasksListCheck(client: GithubApi, prBody: string) {
+  const hasUncheckedTask = /-\s*\[\s\]/g.test(prBody);
+  await client.setPrStatus(
+    hasUncheckedTask ? "pending" : "success",
+    "Tasks List Checker",
+    hasUncheckedTask ? "task list not completed yet" : ""
+  );
 }
 
 run();
