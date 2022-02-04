@@ -35,8 +35,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.GithubApi = void 0;
+exports.GithubApi = exports.botName = void 0;
 const github = __importStar(__nccwpck_require__(5438));
+exports.botName = "**@labels-checker**";
 class GithubApi {
     constructor(options) {
         this._options = options;
@@ -52,6 +53,34 @@ class GithubApi {
                 .filter(x => x.name != null)
                 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .map(x => x.name));
+        });
+    }
+    getLastChangesRequestedReview() {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const reviews = yield this._client.rest.pulls.listReviews(this._basePayload);
+            return ((_a = reviews.data) !== null && _a !== void 0 ? _a : []).filter(x => {
+                var _a;
+                return x.body &&
+                    x.body.startsWith(exports.botName) &&
+                    x.state === "CHANGES_REQUESTED" &&
+                    ((_a = x.user) === null || _a === void 0 ? void 0 : _a.type) === "Bot";
+            })[0];
+        });
+    }
+    requestChanges(message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._client.rest.pulls.createReview(Object.assign(Object.assign({}, this._basePayload), { body: `${exports.botName}:\n${message}`, event: "REQUEST_CHANGES" }));
+        });
+    }
+    updateReviewMessage(review, message) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._client.rest.pulls.updateReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, body: `${exports.botName}:\n${message}` }));
+        });
+    }
+    dismissReview(review) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield this._client.rest.pulls.dismissReview(Object.assign(Object.assign({}, this._basePayload), { review_id: review.id, message: `${exports.botName}: LGTM` }));
         });
     }
     setPrStatus(state, context, description) {
@@ -198,8 +227,28 @@ function run() {
                 repo: github.context.repo,
                 sha: github.context.payload.pull_request.head.sha
             });
-            yield runLabelsCheck(client, config);
-            yield runTasksListCheck(client, github.context.payload.pull_request.body);
+            const { success, errorMsg } = [
+                yield runLabelsCheck(client, config),
+                runTasksListCheck(github.context.payload.pull_request.body)
+            ].reduce((acc, res) => ({
+                success: acc.success && res.success,
+                errorMsg: [acc.errorMsg, res.errorMsg].filter(x => x).join("\n")
+            }));
+            const lastReview = yield client.getLastChangesRequestedReview();
+            if (success) {
+                // remove "changes requested" if labels are ok now.
+                if (lastReview) {
+                    yield client.dismissReview(lastReview);
+                }
+                return;
+            }
+            if (!lastReview) {
+                yield client.requestChanges(errorMsg);
+                return;
+            }
+            if (lastReview.body_text !== errorMsg) {
+                yield client.updateReviewMessage(lastReview, errorMsg);
+            }
         }
         catch (error) {
             if (error instanceof Error)
@@ -210,15 +259,15 @@ function run() {
 function runLabelsCheck(client, config) {
     return __awaiter(this, void 0, void 0, function* () {
         const actualLabels = yield client.getPullRequestLabels();
-        const { success, errorMsg } = (0, labels_checker_1.checkLabels)(actualLabels, config);
-        yield client.setPrStatus(success ? "success" : "pending", "Labels Checker", errorMsg);
+        return (0, labels_checker_1.checkLabels)(actualLabels, config);
     });
 }
-function runTasksListCheck(client, prBody) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const hasUncheckedTask = /-\s*\[\s\]/g.test(prBody);
-        yield client.setPrStatus(hasUncheckedTask ? "pending" : "success", "Tasks List Checker", hasUncheckedTask ? "task list not completed yet" : "");
-    });
+function runTasksListCheck(prBody) {
+    const hasUncheckedTask = /-\s*\[\s\]/g.test(prBody);
+    return {
+        success: !hasUncheckedTask,
+        errorMsg: hasUncheckedTask ? "Task list not completed yet" : ""
+    };
 }
 run();
 
