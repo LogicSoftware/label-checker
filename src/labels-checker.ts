@@ -2,12 +2,10 @@ import { Config } from "./config";
 
 type LabelsConfig = Pick<Config, "anyOfLabels" | "noneOfLabels">;
 
-type Result = { success: boolean; errorMsg: string };
-
 export const checkLabels = (
   prLabels: string[],
   { anyOfLabels = [], noneOfLabels = [] }: LabelsConfig
-): Result => {
+): string | null => {
   prLabels = prLabels.map(x => x.toLowerCase());
 
   const deniedLabels = noneOfLabels.filter(x =>
@@ -15,10 +13,7 @@ export const checkLabels = (
   );
   if (deniedLabels.length) {
     const labels = formatLabels(deniedLabels);
-    return {
-      success: false,
-      errorMsg: `Deny merge pr until it's labeled with label(s): ${labels}.`
-    };
+    return `Deny merge pr until it's labeled with label(s): ${labels}.`;
   }
 
   if (
@@ -26,13 +21,11 @@ export const checkLabels = (
     !anyOfLabels.some(x => prLabels.includes(x.toLowerCase()))
   ) {
     const labels = formatLabels(anyOfLabels);
-    return {
-      success: false,
-      errorMsg: `PR must be labeled with one or more of these required labels: ${labels}.`
-    };
+    return `PR must be labeled with one or more of these required labels: ${labels}.`;
   }
 
-  return { success: true, errorMsg: "" };
+  return null;
 };
 
-const formatLabels = (labels: string[]) => labels.map(x => `${x}`).join(", ");
+const formatLabels = (labels: string[]) =>
+  labels.map(x => `**${x}**`).join(", ");

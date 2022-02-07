@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { Config, getConfig } from "./config";
-import { GithubApi } from "./api";
+import { botName, GithubApi } from "./api";
 import { checkLabels } from "./labels-checker";
 
 async function run(): Promise<void> {
@@ -18,31 +18,45 @@ async function run(): Promise<void> {
       sha: github.context.payload.pull_request.head.sha
     });
 
-    await runLabelsCheck(client, config);
-    await runTasksListCheck(client, github.context.payload.pull_request.body!);
+    const errors = [
+      await getLabelsError(client, config),
+      getTasksListError(github.context.payload.pull_request.body!)
+    ].filter(x => !!x);
+
+    const errorMsg = errors.length ? `${botName}:\n${errors.join("\n")}` : null;
+    const isSuccessful = !errorMsg;
+
+    const lastReview = await client.getLastChangesRequestedReview();
+
+    if (isSuccessful) {
+      // remove "changes requested" if labels are ok now.
+      if (lastReview) {
+        await client.dismissReview(lastReview);
+      }
+      return;
+    }
+
+    if (!lastReview) {
+      await client.requestChanges(errorMsg);
+      return;
+    }
+
+    if (lastReview.body_text !== errorMsg) {
+      await client.updateReviewMessage(lastReview, errorMsg);
+    }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message);
   }
 }
 
-async function runLabelsCheck(client: GithubApi, config: Config) {
+async function getLabelsError(client: GithubApi, config: Config) {
   const actualLabels = await client.getPullRequestLabels();
-  const { success, errorMsg } = checkLabels(actualLabels, config);
-
-  await client.setPrStatus(
-    success ? "success" : "pending",
-    "Labels Checker",
-    errorMsg
-  );
+  return checkLabels(actualLabels, config);
 }
 
-async function runTasksListCheck(client: GithubApi, prBody: string) {
+function getTasksListError(prBody: string): string | null {
   const hasUncheckedTask = /-\s*\[\s\]/g.test(prBody);
-  await client.setPrStatus(
-    hasUncheckedTask ? "pending" : "success",
-    "Tasks List Checker",
-    hasUncheckedTask ? "task list not completed yet" : ""
-  );
+  return hasUncheckedTask ? "Tasks list is not completed yet" : null;
 }
 
 run();

@@ -4,53 +4,49 @@ import { checkLabels } from "../src/labels-checker";
 describe("checkLabels", () => {
   it("should be success if pr has any_of label", () => {
     let config = { anyOfLabels: ["tested", "partial"], noneOfLabels: [] };
-    const result = checkLabels(["tested"], config);
+    const error = checkLabels(["tested"], config);
 
-    expect(result.success).toBe(true);
+    expect(error).toBeNull();
   });
 
   it("should be success if pr has any_of label ignoring case", () => {
     let config = { anyOfLabels: ["tEsted", "partial"], noneOfLabels: [] };
-    const result = checkLabels(["Tested"], config);
+    const error = checkLabels(["Tested"], config);
 
-    expect(result.success).toBe(true);
+    expect(error).toBeNull();
   });
 
   it("should fail if pr has not any_of label", () => {
     let config = { anyOfLabels: ["tested", "partial"], noneOfLabels: [] };
-    const result = checkLabels(["untested"], config);
+    const error = checkLabels(["untested"], config);
 
-    expect(result).toEqual({
-      success: false,
-      errorMsg:
-        "PR must be labeled with one or more of these required labels: tested, partial."
-    });
+    expect(error).toBe(
+      "PR must be labeled with one or more of these required labels: **tested**, **partial**."
+    );
   });
 
   it("should be success if pr has not denied labels", () => {
     let config = { anyOfLabels: [], noneOfLabels: ["untested"] };
-    const result = checkLabels(["tested"], config);
+    const error = checkLabels(["tested"], config);
 
-    expect(result.success).toBe(true);
+    expect(error).toBeNull();
   });
 
   it("should fail if pr has one of denied labels", () => {
     let config = { anyOfLabels: [], noneOfLabels: ["untested"] };
-    const result = checkLabels(["untested", "accumulative"], config);
+    const error = checkLabels(["untested", "accumulative"], config);
 
-    expect(result).toEqual({
-      success: false,
-      errorMsg: "Deny merge pr until it's labeled with label(s): untested."
-    });
+    expect(error).toBe(
+      "Deny merge pr until it's labeled with label(s): **untested**."
+    );
   });
 
   it("should fail if pr has one of denied labels  ignoring case", () => {
     let config = { anyOfLabels: [], noneOfLabels: ["Untested"] };
-    const result = checkLabels(["untesteD", "accumulative"], config);
+    const error = checkLabels(["untesteD", "accumulative"], config);
 
-    expect(result).toEqual({
-      success: false,
-      errorMsg: "Deny merge pr until it's labeled with label(s): Untested."
-    });
+    expect(error).toBe(
+      "Deny merge pr until it's labeled with label(s): **Untested**."
+    );
   });
 });

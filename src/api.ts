@@ -9,6 +9,7 @@ type Options = {
 };
 
 type StatusState = "error" | "failure" | "pending" | "success";
+export const botName = "**@labels-checker**";
 
 export class GithubApi {
   private _options: Options;
@@ -31,6 +32,44 @@ export class GithubApi {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         .map(x => x.name!)
     );
+  }
+
+  async getLastChangesRequestedReview() {
+    const reviews = await this._client.rest.pulls.listReviews(
+      this._basePayload
+    );
+
+    return (reviews.data ?? []).filter(
+      x =>
+        x.body &&
+        x.body.startsWith(botName) &&
+        x.state === "CHANGES_REQUESTED" &&
+        x.user?.type === "Bot"
+    )[0];
+  }
+
+  async requestChanges(message: string) {
+    await this._client.rest.pulls.createReview({
+      ...this._basePayload,
+      body: message,
+      event: "REQUEST_CHANGES"
+    });
+  }
+
+  async updateReviewMessage(review: { id: number }, message: string) {
+    await this._client.rest.pulls.updateReview({
+      ...this._basePayload,
+      review_id: review.id,
+      body: message
+    });
+  }
+
+  async dismissReview(review: { id: number }) {
+    await this._client.rest.pulls.dismissReview({
+      ...this._basePayload,
+      review_id: review.id,
+      message: `${botName}: LGTM`
+    });
   }
 
   async setPrStatus(state: StatusState, context: string, description?: string) {
